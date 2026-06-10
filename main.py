@@ -59,6 +59,9 @@ def load_blooms() -> list[dict]:
             "wtype":    _clean(row.get("Water_Body_Type")),
             "wuse":     _clean(row.get("Water_Body_Use")),
             "resp":     _clean(row.get("Response_Type")),
+            "toxin":    "detected cyanotoxin" in (
+                (row.get("Advisory_Detail_Description") or "") + " " + (row.get("AdvisoryDetail") or "")
+            ).lower(),
         })
 
     return blooms
