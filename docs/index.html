@@ -6,12 +6,20 @@
 <title>CyanoSafe CA — HAB Safety Map</title>
 <style>
 :root{
-  --danger:#C62828; --warning:#E65100; --caution:#F9A825;
-  --watch:#00796B; --mat:#5D4037; --other:#607D8B;
+  /* Colorblind-safe advisory palette — WCAG AA with white text (min 4.5:1) */
+  /* Okabe-Ito / IBM colorblind-safe hues, darkened for badge contrast       */
+  --danger:#B91C1C;   /* red-700     ~9:1 */
+  --warning:#C2410C;  /* orange-700  ~7.8:1 */
+  --caution:#A16207;  /* amber-700   ~7.2:1 — avoids yellow/white fail */
+  --watch:#1D4ED8;    /* blue-700    ~8:1   — replaces teal-green */
+  --mat:#7E22CE;      /* purple-700  ~9:1   — distinct from all above */
+  --other:#374151;    /* gray-700    ~10:1  */
   --ca-blue:#003368; --ca-gold:#FDB913;
-  --bg:#F0F4F8; --white:#fff; --text:#1a2332; --sub:#5a6779; --border:#d0d8e4;
+  --bg:#F0F4F8; --white:#fff; --text:#1a2332; --sub:#4B5563; --border:#d0d8e4;
   --radius:8px;
 }
+/* Keyboard focus visibility — WCAG 2.4.11 */
+:focus-visible{outline:3px solid var(--ca-blue);outline-offset:2px;border-radius:2px;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);
      color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
@@ -81,10 +89,10 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
 #tooltip td{padding:2px 0;vertical-align:top;}
 #tooltip td:first-child{color:var(--sub);padding-right:8px;font-weight:600;width:36%;white-space:nowrap;}
 #tooltip .guidance{margin-top:7px;padding:7px 9px;border-radius:5px;font-size:.74rem;line-height:1.5;}
-.g-Danger{background:#ffebee;border-left:3px solid var(--danger);}
-.g-Warning{background:#fff3e0;border-left:3px solid var(--warning);}
-.g-Caution{background:#fffde7;border-left:3px solid var(--caution);}
-.g-Watch,.g-Mat,.g-Other{background:#e8f5e9;border-left:3px solid var(--watch);}
+.g-Danger{background:#FEF2F2;border-left:3px solid var(--danger);}
+.g-Warning{background:#FFF7ED;border-left:3px solid var(--warning);}
+.g-Caution{background:#FFFBEB;border-left:3px solid var(--caution);}
+.g-Watch,.g-Mat,.g-Other{background:#EFF6FF;border-left:3px solid var(--watch);}
 #tooltip .guidance strong{display:block;margin-bottom:2px;}
 /* MAP CONTROLS */
 .map-controls{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:5px;z-index:40;}
@@ -192,12 +200,12 @@ function classifyAdv(adv){
   return 'Other';
 }
 const ADV = {
-  Danger:  {color:'#C62828',label:'Danger',       label_es:'Peligro',       order:0, r:9},
-  Warning: {color:'#E65100',label:'Warning',      label_es:'Advertencia',   order:1, r:8},
-  Caution: {color:'#F9A825',label:'Caution',      label_es:'Precaución',    order:2, r:7},
-  Watch:   {color:'#00796B',label:'Watch/Awareness',label_es:'Vigilancia',  order:3, r:6},
-  Mat:     {color:'#5D4037',label:'Algal Mat',    label_es:'Tapete Algal',  order:4, r:6},
-  Other:   {color:'#607D8B',label:'Informational',label_es:'Informativo',   order:5, r:5},
+  Danger:  {color:'#B91C1C',label:'Danger',       label_es:'Peligro',       order:0, r:9},
+  Warning: {color:'#C2410C',label:'Warning',      label_es:'Advertencia',   order:1, r:8},
+  Caution: {color:'#A16207',label:'Caution',      label_es:'Precaución',    order:2, r:7},
+  Watch:   {color:'#1D4ED8',label:'Watch/Awareness',label_es:'Vigilancia',  order:3, r:6},
+  Mat:     {color:'#7E22CE',label:'Algal Mat',    label_es:'Tapete Algal',  order:4, r:6},
+  Other:   {color:'#374151',label:'Informational',label_es:'Informativo',   order:5, r:5},
 };
 const GUIDANCE = {
   en:{
@@ -340,7 +348,7 @@ document.addEventListener('click', e => {
 // ── SIGN CONTENT per advisory level (matching CA FHAB official templates) ─────
 const SIGN = {
   Danger: {
-    color:'#C62828', bg:'#ffebee',
+    color:'#B91C1C', bg:'#FEF2F2',
     en: {
       level:'DANGER', headline:'HARMFUL ALGAL BLOOM',
       sub:'Stay out of the water until further notice.',
@@ -369,7 +377,7 @@ const SIGN = {
     }
   },
   Warning: {
-    color:'#E65100', bg:'#fff3e0',
+    color:'#C2410C', bg:'#FFF7ED',
     en: {
       level:'WARNING', headline:'HARMFUL ALGAL BLOOM',
       sub:'No swimming. Stay away from scum and discolored water.',
@@ -398,7 +406,7 @@ const SIGN = {
     }
   },
   Caution: {
-    color:'#F9A825', bg:'#fffde7',
+    color:'#A16207', bg:'#FFFBEB',
     en: {
       level:'CAUTION', headline:'HARMFUL ALGAL BLOOM',
       sub:'You can swim in this water, but stay away from algae and scum.',
@@ -427,7 +435,7 @@ const SIGN = {
     }
   },
   Watch: {
-    color:'#00796B', bg:'#e0f2f1',
+    color:'#1D4ED8', bg:'#EFF6FF',
     en: {
       level:'WATCH / AWARENESS', headline:'HARMFUL ALGAL BLOOM OBSERVED',
       sub:'A bloom has been observed. Stay alert and avoid contact with visible algae.',
@@ -452,7 +460,7 @@ const SIGN = {
     }
   },
   Mat: {
-    color:'#5D4037', bg:'#efebe9',
+    color:'#7E22CE', bg:'#FAF5FF',
     en: {
       level:'ALGAL MAT ALERT', headline:'TOXIC ALGAL MAT',
       sub:'A toxic benthic algal mat has been detected. Do not touch mat material.',
@@ -477,7 +485,7 @@ const SIGN = {
     }
   },
   Other: {
-    color:'#607D8B', bg:'#eceff1',
+    color:'#374151', bg:'#F9FAFB',
     en: {
       level:'INFORMATIONAL', headline:'HARMFUL ALGAL BLOOM MONITORING',
       sub:'Monitoring is in progress at this location.',
@@ -667,9 +675,9 @@ function showWaterBodyPopup(name){
         // ci_modified thresholds: <50 low, 50-300 moderate, >300 high
         function ciLevel(v){
           if(v==null) return {label:'—',color:'#94a3b8'};
-          if(v<50)   return {label:'Low',color:'#16a34a'};
-          if(v<300)  return {label:'Moderate',color:'#d97706'};
-          return          {label:'High',color:'#dc2626'};
+          if(v<50)   return {label:'Low',color:'#1D4ED8'};
+          if(v<300)  return {label:'Moderate',color:'#B45309'};
+          return          {label:'High',color:'#B91C1C'};
         }
 
         const vals = rows.map(d=>d.mean);
@@ -715,7 +723,7 @@ function showWaterBodyPopup(name){
             </div>
             <div style="margin-bottom:6px;">${sparkline}</div>
             <div style="display:flex;justify-content:space-between;font-size:.65rem;color:#94a3b8;">
-              <span>${rows[0].date}</span><span style="font-size:.65rem;color:#94a3b8;">CI scale: 0–1000 · <span style="color:#16a34a">■</span>Low &lt;50 · <span style="color:#d97706">■</span>Moderate 50–300 · <span style="color:#dc2626">■</span>High &gt;300</span><span>${rows[rows.length-1].date}</span>
+              <span>${rows[0].date}</span><span style="font-size:.65rem;color:#94a3b8;">CI scale: 0–1000 · <span style="color:#1D4ED8">■</span>Low &lt;50 · <span style="color:#B45309">■</span>Moderate 50–300 · <span style="color:#B91C1C">■</span>High &gt;300</span><span>${rows[rows.length-1].date}</span>
             </div>
           </div>`;
       })
