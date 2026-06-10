@@ -357,11 +357,13 @@ function resetView(){
 
 // ── HOVER / TOOLTIP ────────────────────────────────────────────────────────────
 const tip = document.getElementById('tooltip');
+let pinnedTip = false;
+
 function handleHover(e){
+  if(pinnedTip) return;
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
-  // Find closest bloom within hit radius
   let best = null, bestDist = 12;
   filtered.forEach(r => {
     const [x,y] = project(r.lon, r.lat);
@@ -383,7 +385,13 @@ canvas.addEventListener('click', e => {
     const d = Math.hypot(x-mx, y-my);
     if(d < bestDist){ bestDist=d; best=r; }
   });
-  if(best) showTooltip(best, e.clientX, e.clientY, true);
+  if(best){
+    pinnedTip = true;
+    showTooltip(best, e.clientX, e.clientY, true);
+  } else {
+    pinnedTip = false;
+    tip.style.display='none';
+  }
 });
 
 function showTooltip(r, cx, cy, pinned){
