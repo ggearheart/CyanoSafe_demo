@@ -285,10 +285,9 @@ function showTooltip(r, cx, cy, pinned){
 
   const qrUrl = `${location.origin}${location.pathname}?id=${encodeURIComponent(r.id||'')}`;
   const wbCount = RAW.filter(x => x.name === r.name).length;
-  const wbUrl = `${location.origin}${location.pathname}?waterbody=${encodeURIComponent(r.name||'')}`;
   tip.innerHTML = `
     <h3>${r.name||'Unknown water body'}</h3>
-    <a href="${wbUrl}" style="pointer-events:auto;display:inline-block;font-size:.72rem;color:var(--ca-blue);text-decoration:none;margin-bottom:4px;" title="View all records for this water body">📋 ${wbCount} record${wbCount===1?'':'s'} for this water body</a>
+    <a href="#" onclick="event.preventDefault();showWaterBodyPopup(${JSON.stringify(r.name||'')})" style="pointer-events:auto;display:inline-block;font-size:.72rem;color:var(--ca-blue);text-decoration:none;margin-bottom:4px;">📋 ${wbCount} record${wbCount===1?'':'s'} for this water body</a>
     <span class="t-badge" style="background:${m.color}">${lang==='en'?m.label:m.label_es}</span>
     <table>${rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
     <div class="guidance g-${r._adv}"><strong>${g.hdr}</strong>${g.body}</div>
@@ -550,6 +549,50 @@ function printSign(r){
 
 function closeSign(){
   if(signOverlay){ signOverlay.remove(); signOverlay=null; }
+}
+
+function showWaterBodyPopup(name){
+  const records = RAW.filter(x => x.name === name)
+    .sort((a,b) => (b.obs||'').localeCompare(a.obs||''));
+  const existing = document.getElementById('wb-popup-overlay');
+  if(existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'wb-popup-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 20px;';
+  overlay.innerHTML = `
+    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:8px;width:100%;max-width:640px;box-shadow:0 8px 32px rgba(0,0,0,.25);overflow:hidden;">
+      <div style="background:var(--ca-blue);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-weight:700;font-size:1rem;">${name}</div>
+          <div style="font-size:.78rem;opacity:.85;">${records.length} report${records.length===1?'':'s'}</div>
+        </div>
+        <button onclick="document.getElementById('wb-popup-overlay').remove()" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+          <thead>
+            <tr style="background:#f4f6f8;text-align:left;">
+              <th style="padding:9px 14px;border-bottom:2px solid #dde1e7;">Date</th>
+              <th style="padding:9px 14px;border-bottom:2px solid #dde1e7;">Advisory Level</th>
+              <th style="padding:9px 14px;border-bottom:2px solid #dde1e7;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map((rec,i) => {
+              const m = ADV[rec._adv];
+              const date = rec.obs ? rec.obs.split('T')[0] : '—';
+              return `<tr style="background:${i%2?'#fafbfc':'#fff'};">
+                <td style="padding:8px 14px;border-bottom:1px solid #eee;">${date}</td>
+                <td style="padding:8px 14px;border-bottom:1px solid #eee;"><span style="display:inline-block;padding:2px 8px;border-radius:4px;background:${m.color};color:#fff;font-size:.74rem;font-weight:700;">${m.label}</span></td>
+                <td style="padding:8px 14px;border-bottom:1px solid #eee;">${rec.status||'—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
 }
 
 // ── FILTERS & SIDEBAR ─────────────────────────────────────────────────────────
