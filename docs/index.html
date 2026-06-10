@@ -98,6 +98,10 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
 .map-leg-row{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
 .map-leg-row:last-child{margin-bottom:0;}
 .map-leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+#tooltip .qr-wrap{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:7px;border-top:1px solid var(--border);}
+#tooltip .qr-wrap canvas{border-radius:4px;}
+#tooltip .qr-label{font-size:.64rem;color:var(--sub);line-height:1.4;}
+#tooltip .qr-label strong{display:block;color:var(--text);font-size:.7rem;}
 </style>
 </head>
 <body>
@@ -381,11 +385,16 @@ function showTooltip(r, cx, cy, pinned){
     r.toxins ? ['Toxins', r.toxins] : null,
   ].filter(Boolean);
 
+  const qrUrl = `${location.origin}${location.pathname}?q=${encodeURIComponent(r.name||'')}`;
   tip.innerHTML = `
     <h3>${r.name||'Unknown water body'}</h3>
     <span class="t-badge" style="background:${m.color}">${lang==='en'?m.label:m.label_es}</span>
     <table>${rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
     <div class="guidance g-${r._adv}"><strong>${g.hdr}</strong>${g.body}</div>
+    <div class="qr-wrap">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&margin=2&data=${encodeURIComponent(qrUrl)}" width="64" height="64" alt="QR code" style="border-radius:4px;"/>
+      <div class="qr-label"><strong>Scan for current info</strong>Scan to view live HAB alerts<br>for this water body</div>
+    </div>
   `;
   tip.style.display = 'block';
   const tw = 290, th = 220;
