@@ -410,16 +410,84 @@ function showTooltip(r, cx, cy, pinned){
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&margin=2&data=${encodeURIComponent(qrUrl)}" width="64" height="64" alt="QR code" style="border-radius:4px;"/>
       <div class="qr-label"><strong>Scan for current info</strong>Scan to view live HAB alerts<br>for this water body</div>
     </div>
+    <button onclick="printSign(${JSON.stringify(r).replace(/</g,'\\u003c')})" style="pointer-events:auto;margin-top:8px;width:100%;padding:6px;border:1px solid var(--ca-blue);border-radius:var(--radius);background:var(--ca-blue);color:#fff;cursor:pointer;font-size:.75rem;font-weight:700;">🖨️ Print Advisory Sign</button>
   `;
   tip.style.display = 'block';
+  tip.style.pointerEvents = pinned ? 'auto' : 'none';
   const tw = 290, th = 220;
   const vw = window.innerWidth, vh = window.innerHeight;
   tip.style.left = (cx + tw + 12 > vw ? cx - tw - 8 : cx + 12) + 'px';
   tip.style.top  = (cy + th + 12 > vh ? cy - th    : cy + 12) + 'px';
 }
 document.addEventListener('click', e => {
-  if(!canvas.contains(e.target)) tip.style.display='none';
+  if(!canvas.contains(e.target) && !tip.contains(e.target)) tip.style.display='none';
 });
+
+function printSign(r){
+  const m = ADV[r._adv];
+  const g = GUIDANCE['en'][r._adv];
+  const qrUrl = `${location.origin}${location.pathname}?q=${encodeURIComponent(r.name||'')}`;
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=4&data=${encodeURIComponent(qrUrl)}`;
+  const obs = r.obs ? r.obs.split('T')[0] : '';
+  const w = window.open('','_blank','width=680,height=900');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+<title>HAB Advisory Sign — ${r.name||'Water Body'}</title>
+<style>
+  @page{size:letter;margin:.5in}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Helvetica Neue',Arial,sans-serif;background:#fff;color:#111;padding:20px;}
+  .sign{border:6px solid ${m.color};border-radius:12px;overflow:hidden;max-width:6.5in;margin:0 auto;}
+  .sign-header{background:${m.color};color:#fff;padding:18px 24px;text-align:center;}
+  .sign-header .adv{font-size:2rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;}
+  .sign-header .name{font-size:1.1rem;font-weight:600;margin-top:4px;opacity:.92;}
+  .sign-body{padding:20px 24px;display:flex;gap:20px;align-items:flex-start;}
+  .sign-text{flex:1;}
+  .sign-text .hdr{font-size:1rem;font-weight:800;margin-bottom:8px;color:${m.color};}
+  .sign-text .body{font-size:.9rem;line-height:1.6;color:#333;}
+  .sign-meta{font-size:.78rem;color:#666;margin-top:12px;border-top:1px solid #eee;padding-top:10px;}
+  .sign-meta span{display:block;margin-bottom:3px;}
+  .sign-qr{flex-shrink:0;text-align:center;}
+  .sign-qr img{border:2px solid #ddd;border-radius:6px;display:block;}
+  .sign-qr p{font-size:.65rem;color:#666;margin-top:5px;line-height:1.3;}
+  .sign-footer{background:#f5f5f5;border-top:2px solid ${m.color};padding:10px 24px;display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:#555;}
+  @media print{
+    body{padding:0;}
+    .no-print{display:none;}
+  }
+</style>
+</head><body>
+<div class="no-print" style="text-align:center;margin-bottom:16px;">
+  <button onclick="window.print()" style="padding:8px 24px;background:#003368;color:#fff;border:none;border-radius:6px;font-size:.9rem;cursor:pointer;font-weight:700;">🖨️ Print</button>
+</div>
+<div class="sign">
+  <div class="sign-header">
+    <div class="adv">${g.hdr}</div>
+    <div class="name">${r.name||'Unknown Water Body'}${r.county ? ' — '+r.county+' County' : ''}</div>
+  </div>
+  <div class="sign-body">
+    <div class="sign-text">
+      <div class="hdr">Public Health Advisory</div>
+      <div class="body">${g.body}</div>
+      <div class="sign-meta">
+        ${obs ? `<span>📅 Observed: ${obs}</span>` : ''}
+        ${r.status ? `<span>📋 Status: ${r.status}</span>` : ''}
+        ${r.rwb ? `<span>🏛 ${r.rwb}</span>` : ''}
+        <span style="margin-top:6px;font-size:.7rem;">Issued by California State Water Resources Control Board — FHAB Program</span>
+      </div>
+    </div>
+    <div class="sign-qr">
+      <img src="${qrSrc}" width="130" height="130" alt="QR code"/>
+      <p>Scan for live<br>HAB alerts at<br>this location</p>
+    </div>
+  </div>
+  <div class="sign-footer">
+    <span>🌊 CyanoSafe CA — Harmful Algal Bloom Safety Map</span>
+    <span>Report sightings: cyanotracker.ca.gov</span>
+  </div>
+</div>
+</body></html>`);
+  w.document.close();
+}
 
 // ── FILTERS & SIDEBAR ─────────────────────────────────────────────────────────
 function clearDayBtns(){
