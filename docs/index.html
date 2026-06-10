@@ -283,15 +283,19 @@ function showTooltip(r, cx, cy, pinned){
     [lang==='en'?'Status':'Estado', r.status||'—'],
     r.size ? [lang==='en'?'Size':'Tamaño', r.size] : null,
     r.texture ? [lang==='en'?'Texture':'Textura', r.texture] : null,
-    r.toxins ? ['Toxins', r.toxins] : null,
   ].filter(Boolean);
 
   const qrUrl = `${location.origin}${location.pathname}?id=${encodeURIComponent(r.id||'')}`;
   const wbCount = RAW.filter(x => x.name === r.name).length;
+  const toxinBadge = r.toxin
+    ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#7c3aed;color:#fff;font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:6px;">🧪 Cyanotoxins detected</span>`
+    : '';
   tip.innerHTML = `
     <h3>${r.name||'Unknown water body'}</h3>
     <a href="#" id="wb-summary-link" style="pointer-events:auto;display:inline-block;font-size:.72rem;color:var(--ca-blue);text-decoration:none;margin-bottom:4px;">📋 ${wbCount} record${wbCount===1?'':'s'} for this water body</a>
-    <span class="t-badge" style="background:${m.color}">${lang==='en'?m.label:m.label_es}</span>
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px;">
+      <span class="t-badge" style="background:${m.color};margin:0;">${lang==='en'?m.label:m.label_es}</span>${toxinBadge}
+    </div>
     <table>${rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
     <div class="guidance g-${r._adv}"><strong>${g.hdr}</strong>${g.body}</div>
     <div class="qr-wrap">
@@ -585,16 +589,21 @@ function showWaterBodyPopup(name){
               <th style="padding:9px 14px;border-bottom:2px solid #dde1e7;">Date</th>
               <th style="padding:9px 14px;border-bottom:2px solid #dde1e7;">Advisory Level</th>
               <th style="padding:9px 14px;border-bottom:2px solid #dde1e7;">Status</th>
+              <th style="padding:9px 14px;border-bottom:2px solid #dde1e7;">Cyanotoxins</th>
             </tr>
           </thead>
           <tbody>
             ${records.map((rec,i) => {
               const m = ADV[rec._adv];
               const date = rec.obs ? rec.obs.split('T')[0] : '—';
+              const toxinCell = rec.toxin
+                ? `<span style="background:#7c3aed;color:#fff;padding:2px 7px;border-radius:4px;font-size:.72rem;font-weight:700;">🧪 Detected</span>`
+                : `<span style="color:#94a3b8;font-size:.78rem;">—</span>`;
               return `<tr style="background:${i%2?'#fafbfc':'#fff'};">
                 <td style="padding:8px 14px;border-bottom:1px solid #eee;">${date}</td>
                 <td style="padding:8px 14px;border-bottom:1px solid #eee;"><span style="display:inline-block;padding:2px 8px;border-radius:4px;background:${m.color};color:#fff;font-size:.74rem;font-weight:700;">${m.label}</span></td>
                 <td style="padding:8px 14px;border-bottom:1px solid #eee;">${rec.status||'—'}</td>
+                <td style="padding:8px 14px;border-bottom:1px solid #eee;">${toxinCell}</td>
               </tr>`;
             }).join('')}
           </tbody>
