@@ -284,8 +284,11 @@ function showTooltip(r, cx, cy, pinned){
   ].filter(Boolean);
 
   const qrUrl = `${location.origin}${location.pathname}?id=${encodeURIComponent(r.id||'')}`;
+  const wbCount = RAW.filter(x => x.name === r.name).length;
+  const wbUrl = `${location.origin}${location.pathname}?waterbody=${encodeURIComponent(r.name||'')}`;
   tip.innerHTML = `
     <h3>${r.name||'Unknown water body'}</h3>
+    <a href="${wbUrl}" style="pointer-events:auto;display:inline-block;font-size:.72rem;color:var(--ca-blue);text-decoration:none;margin-bottom:4px;" title="View all records for this water body">📋 ${wbCount} record${wbCount===1?'':'s'} for this water body</a>
     <span class="t-badge" style="background:${m.color}">${lang==='en'?m.label:m.label_es}</span>
     <table>${rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
     <div class="guidance g-${r._adv}"><strong>${g.hdr}</strong>${g.body}</div>
@@ -695,6 +698,14 @@ fetch("blooms.json")
     buildLegend();
     populateSelects();
     applyFilters();
+    // Handle ?waterbody= deep-link (all records for a water body)
+    const urlWB = new URLSearchParams(location.search).get('waterbody');
+    if(urlWB){
+      document.getElementById('search').value = urlWB;
+      applyFilters();
+      const first = filtered.find(r => r.name === urlWB);
+      if(first) flyTo(first.lat, first.lon);
+    }
     // Handle ?id= deep-link from QR code
     const urlId = new URLSearchParams(location.search).get('id');
     if(urlId){
