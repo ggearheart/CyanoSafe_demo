@@ -157,7 +157,13 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
         <input type="date" id="fDateTo" class="filter" style="flex:1;padding:5px 6px;margin-bottom:0;" onchange="clearDayBtns();applyFilters()"/>
       </div>
       <div class="sb-label">Cyanotoxins</div>
-      <button id="toxinBtn" onclick="toggleToxinFilter(this)" style="width:100%;margin-bottom:7px;padding:6px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;font-size:.75rem;font-weight:600;color:var(--sub);">🧪 Show toxin-confirmed only</button>
+      <button id="toxinBtn" onclick="toggleToxinFilter(this)" style="width:100%;margin-bottom:5px;padding:6px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;font-size:.75rem;font-weight:600;color:var(--sub);">🧪 Show toxin-confirmed only</button>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;" id="toxinTypeBtns">
+        <button class="toxin-type-btn" data-type="Microcystins" onclick="toggleToxinType(this)" style="padding:3px 8px;border:1px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;font-size:.71rem;font-weight:600;color:var(--sub);">Microcystins</button>
+        <button class="toxin-type-btn" data-type="Anatoxins" onclick="toggleToxinType(this)" style="padding:3px 8px;border:1px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;font-size:.71rem;font-weight:600;color:var(--sub);">Anatoxins</button>
+        <button class="toxin-type-btn" data-type="Cylindrospermopsin" onclick="toggleToxinType(this)" style="padding:3px 8px;border:1px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;font-size:.71rem;font-weight:600;color:var(--sub);">Cylindrospermopsin</button>
+        <button class="toxin-type-btn" data-type="Saxitoxin" onclick="toggleToxinType(this)" style="padding:3px 8px;border:1px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;font-size:.71rem;font-weight:600;color:var(--sub);">Saxitoxin</button>
+      </div>
       <div class="stats-bar" id="statsBar"></div>
       <div class="sb-label">Bloom Reports <span id="listCount" style="font-weight:400;color:var(--sub)"></span></div>
       <div class="bloom-list" id="bloomList"></div>
@@ -214,6 +220,7 @@ let lang = 'en';
 let filtered = [];
 let advFilter = new Set();
 let toxinOnly = false;
+let toxinTypeFilter = new Set();
 
 // Classify all records once
 RAW.forEach(r => r._adv = classifyAdv(r.adv));
@@ -287,6 +294,7 @@ function showTooltip(r, cx, cy, pinned){
     [lang==='en'?'Status':'Estado', r.status||'—'],
     r.size ? [lang==='en'?'Size':'Tamaño', r.size] : null,
     r.texture ? [lang==='en'?'Texture':'Textura', r.texture] : null,
+    r.toxin_types ? ['Toxin Types', r.toxin_types.join(', ')] : null,
   ].filter(Boolean);
 
   const qrUrl = `${location.origin}${location.pathname}?id=${encodeURIComponent(r.id||'')}`;
@@ -601,9 +609,11 @@ function showWaterBodyPopup(name){
             ${records.map((rec,i) => {
               const m = ADV[rec._adv];
               const date = rec.obs ? rec.obs.split('T')[0] : '—';
-              const toxinCell = rec.toxin
-                ? `<span style="background:#7c3aed;color:#fff;padding:2px 7px;border-radius:4px;font-size:.72rem;font-weight:700;">🧪 Detected</span>`
-                : `<span style="color:#94a3b8;font-size:.78rem;">—</span>`;
+              const toxinCell = rec.toxin_types
+                ? `<span style="background:#7c3aed;color:#fff;padding:2px 7px;border-radius:4px;font-size:.72rem;font-weight:700;">🧪 ${rec.toxin_types.join(', ')}</span>`
+                : rec.toxin
+                  ? `<span style="background:#7c3aed;color:#fff;padding:2px 7px;border-radius:4px;font-size:.72rem;font-weight:700;">🧪 Detected</span>`
+                  : `<span style="color:#94a3b8;font-size:.78rem;">—</span>`;
               return `<tr style="background:${i%2?'#fafbfc':'#fff'};">
                 <td style="padding:8px 14px;border-bottom:1px solid #eee;">${date}</td>
                 <td style="padding:8px 14px;border-bottom:1px solid #eee;"><span style="display:inline-block;padding:2px 8px;border-radius:4px;background:${m.color};color:#fff;font-size:.74rem;font-weight:700;">${m.label}</span></td>
@@ -675,6 +685,21 @@ function toggleToxinFilter(btn){
   btn.style.color = toxinOnly ? '#fff' : 'var(--sub)';
   applyFilters();
 }
+function toggleToxinType(btn){
+  const type = btn.dataset.type;
+  if(toxinTypeFilter.has(type)){
+    toxinTypeFilter.delete(type);
+    btn.style.background = 'var(--bg)';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--sub)';
+  } else {
+    toxinTypeFilter.add(type);
+    btn.style.background = '#7c3aed';
+    btn.style.borderColor = '#7c3aed';
+    btn.style.color = '#fff';
+  }
+  applyFilters();
+}
 
 function applyFilters(){
   const q = document.getElementById('search').value.toLowerCase().trim();
@@ -693,6 +718,7 @@ function applyFilters(){
     if(dateFrom && (!obs || obs < dateFrom)) return false;
     if(dateTo   && (!obs || obs > dateTo))   return false;
     if(toxinOnly && !r.toxin) return false;
+    if(toxinTypeFilter.size && !(r.toxin_types && r.toxin_types.some(t => toxinTypeFilter.has(t)))) return false;
     return true;
   });
   draw();
