@@ -516,7 +516,20 @@ function setLang(l, btn){
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 buildLegend();
 populateSelects();
-fetch("blooms.json").then(r=>r.json()).then(data=>{ RAW=data; RAW.forEach(r=>r._adv=classifyAdv(r.adv)); filtered=[...RAW]; buildLegend(); populateSelects(); applyFilters(); });
+fetch("blooms.json")
+  .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  .then(data=>{
+    RAW=data;
+    RAW.forEach(r=>r._adv=classifyAdv(r.adv));
+    filtered=[...RAW];
+    buildLegend();
+    populateSelects();
+    applyFilters();
+  })
+  .catch(err=>{
+    document.getElementById('bloomList').innerHTML=`<div class="no-results" style="color:red">Failed to load data: ${err.message}</div>`;
+    console.error('blooms.json load error:', err);
+  });
 new ResizeObserver(resize).observe(wrap);
 resize();
 </script>
