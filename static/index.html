@@ -516,7 +516,7 @@ function setLang(l, btn){
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 buildLegend();
 populateSelects();
-fetch("/api/blooms").then(r=>r.json()).then(data=>{ RAW=data; filtered=[...RAW]; applyFilters(); });
+fetch("blooms.json").then(r=>r.json()).then(data=>{ RAW=data; filtered=[...RAW]; applyFilters(); });
 new ResizeObserver(resize).observe(wrap);
 resize();
 </script>
