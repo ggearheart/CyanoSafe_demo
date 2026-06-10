@@ -98,6 +98,9 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
 .map-leg-row{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
 .map-leg-row:last-child{margin-bottom:0;}
 .map-leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.day-btn{flex:1;padding:5px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;font-size:.75rem;font-weight:600;color:var(--sub);}
+.day-btn:hover{background:#e2e8f0;}
+.day-btn.active{background:var(--ca-blue);border-color:var(--ca-blue);color:#fff;}
 #tooltip .qr-wrap{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:7px;border-top:1px solid var(--border);}
 #tooltip .qr-wrap canvas{border-radius:4px;}
 #tooltip .qr-label{font-size:.64rem;color:var(--sub);line-height:1.4;}
@@ -134,6 +137,18 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
       <select class="filter" id="fCounty" onchange="applyFilters()"></select>
       <div class="sb-label" id="lbl-rwb">Regional Water Board</div>
       <select class="filter" id="fRWB" onchange="applyFilters()"></select>
+      <div class="sb-label">Date Range</div>
+      <div style="display:flex;gap:4px;margin-bottom:5px;">
+        <button class="day-btn" onclick="setDays(30,this)">30d</button>
+        <button class="day-btn" onclick="setDays(60,this)">60d</button>
+        <button class="day-btn" onclick="setDays(90,this)">90d</button>
+        <button class="day-btn" onclick="setDays(0,this)">All</button>
+      </div>
+      <div style="display:flex;gap:5px;margin-bottom:7px;align-items:center;">
+        <input type="date" id="fDateFrom" class="filter" style="flex:1;padding:5px 6px;margin-bottom:0;" onchange="clearDayBtns();applyFilters()"/>
+        <span style="color:var(--sub);font-size:.75rem;flex-shrink:0;">–</span>
+        <input type="date" id="fDateTo" class="filter" style="flex:1;padding:5px 6px;margin-bottom:0;" onchange="clearDayBtns();applyFilters()"/>
+      </div>
       <div class="stats-bar" id="statsBar"></div>
       <div class="sb-label">Bloom Reports <span id="listCount" style="font-weight:400;color:var(--sub)"></span></div>
       <div class="bloom-list" id="bloomList"></div>
@@ -407,17 +422,41 @@ document.addEventListener('click', e => {
 });
 
 // ── FILTERS & SIDEBAR ─────────────────────────────────────────────────────────
+function clearDayBtns(){
+  document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('active'));
+}
+function setDays(n, btn){
+  clearDayBtns();
+  btn.classList.add('active');
+  if(n === 0){
+    document.getElementById('fDateFrom').value = '';
+    document.getElementById('fDateTo').value = '';
+  } else {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - n);
+    document.getElementById('fDateFrom').value = from.toISOString().slice(0,10);
+    document.getElementById('fDateTo').value = to.toISOString().slice(0,10);
+  }
+  applyFilters();
+}
+
 function applyFilters(){
   const q = document.getElementById('search').value.toLowerCase().trim();
   const status = document.getElementById('fStatus').value;
   const county = document.getElementById('fCounty').value;
   const rwb = document.getElementById('fRWB').value;
+  const dateFrom = document.getElementById('fDateFrom').value;
+  const dateTo   = document.getElementById('fDateTo').value;
   filtered = RAW.filter(r => {
     if(advFilter.size && !advFilter.has(r._adv)) return false;
     if(status && r.status !== status) return false;
     if(county && r.county !== county) return false;
     if(rwb && r.rwb !== rwb) return false;
     if(q && !((r.name||'')+(r.county||'')).toLowerCase().includes(q)) return false;
+    const obs = r.obs ? r.obs.slice(0,10) : null;
+    if(dateFrom && (!obs || obs < dateFrom)) return false;
+    if(dateTo   && (!obs || obs > dateTo))   return false;
     return true;
   });
   draw();
