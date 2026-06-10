@@ -107,6 +107,8 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
 #tooltip .qr-label{font-size:.64rem;color:var(--sub);line-height:1.4;}
 #tooltip .qr-label strong{display:block;color:var(--text);font-size:.7rem;}
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 <header>
@@ -156,13 +158,7 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
     </div>
   </div>
   <div id="map-wrap">
-    <canvas id="map-canvas"></canvas>
-    <div class="map-controls">
-      <button class="map-btn" onclick="zoom(1.3)" title="Zoom in">+</button>
-      <button class="map-btn" onclick="zoom(0.77)" title="Zoom out">−</button>
-      <button class="map-btn" onclick="resetView()" title="Reset view">⌂</button>
-    </div>
-    <div class="map-legend-wrap" id="mapLegend"></div>
+    <div id="map-canvas" style="position:absolute;inset:0;"></div>
     <div id="tooltip"></div>
   </div>
 </div>
@@ -215,186 +211,61 @@ let advFilter = new Set();
 // Classify all records once
 RAW.forEach(r => r._adv = classifyAdv(r.adv));
 
-// ── MAP ENGINE ────────────────────────────────────────────────────────────────
-// Simple Mercator projection
-const canvas = document.getElementById('map-canvas');
-const ctx = canvas.getContext('2d');
-const wrap = document.getElementById('map-wrap');
+// ── MAP ENGINE (Leaflet) ───────────────────────────────────────────────────────
+const map = L.map('map-canvas', {zoomControl: false}).setView([37.5, -119.5], 6);
 
-// CA bounds: lon -124.5 to -114, lat 32.5 to 42
-const CA = {lonMin:-124.5, lonMax:-114.0, latMin:32.5, latMax:42.0};
-let view = {cx:-119.25, cy:37.25, scale:1}; // center lon/lat, scale multiplier
+L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'USGS National Map | CA Water Boards FHAB',
+  maxZoom: 16,
+  minZoom: 5,
+}).addTo(map);
 
-function resize(){
-  canvas.width = wrap.clientWidth;
-  canvas.height = wrap.clientHeight;
-  draw();
-}
+L.control.zoom({position:'topright'}).addTo(map);
 
-function project(lon, lat){
-  const w = canvas.width, h = canvas.height;
-  // Mercator-ish: map CA bounds to canvas, with current pan/zoom
-  const baseW = w, baseH = h;
-  const lonRange = (CA.lonMax - CA.lonMin) / view.scale;
-  const latRange = (CA.latMax - CA.latMin) / view.scale;
-  const x = (lon - view.cx) / lonRange * baseW + baseW/2;
-  const y = (view.cy - lat) / latRange * baseH + baseH/2;
-  return [x, y];
-}
-
-function unproject(x, y){
-  const w = canvas.width, h = canvas.height;
-  const lonRange = (CA.lonMax - CA.lonMin) / view.scale;
-  const latRange = (CA.latMax - CA.latMin) / view.scale;
-  const lon = (x - w/2) / w * lonRange + view.cx;
-  const lat = view.cy - (y - h/2) / h * latRange;
-  return [lon, lat];
-}
-
-// CA state outline (simplified polygon - major vertices)
-const CA_OUTLINE = [
-  [-124.21,41.998],[-120.0,41.998],[-120.0,39.0],[-114.63,35.0],
-  [-114.63,34.87],[-114.42,34.45],[-114.14,34.26],[-114.27,33.04],
-  [-117.12,32.53],[-117.25,32.67],[-118.52,34.03],[-119.22,34.15],
-  [-120.5,34.47],[-120.65,35.13],[-121.89,36.32],[-122.42,37.36],
-  [-122.51,37.78],[-123.69,38.86],[-123.77,39.55],[-124.21,40.44],
-  [-124.4,40.73],[-124.21,41.998]
-];
-
-function drawMap(){
-  const w = canvas.width, h = canvas.height;
-  ctx.clearRect(0,0,w,h);
-
-  // Background
-  ctx.fillStyle = '#dce8f0';
-  ctx.fillRect(0,0,w,h);
-
-  // CA outline fill
-  ctx.beginPath();
-  CA_OUTLINE.forEach(([lon,lat],i) => {
-    const [x,y] = project(lon,lat);
-    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-  });
-  ctx.closePath();
-  ctx.fillStyle = '#f0f4f8';
-  ctx.fill();
-  ctx.strokeStyle = '#90a4ae';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-}
+let markerLayer = L.layerGroup().addTo(map);
 
 function draw(){
-  drawMap();
-  // Draw bloom dots, back to front (danger on top)
-  const sorted = [...filtered].sort((a,b) => ADV[b._adv].order - ADV[a._adv].order);
+  markerLayer.clearLayers();
+  const sorted = [...filtered].sort((a,b) => ADV[a._adv].order - ADV[b._adv].order);
   sorted.forEach(r => {
-    const [x,y] = project(r.lon, r.lat);
-    if(x < -10 || x > canvas.width+10 || y < -10 || y > canvas.height+10) return;
     const m = ADV[r._adv];
-    const rad = m.r * Math.min(view.scale, 2.5);
-    ctx.beginPath();
-    ctx.arc(x, y, rad, 0, Math.PI*2);
-    ctx.fillStyle = r.status==='Closed' ? m.color+'55' : m.color+'CC';
-    ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    const circle = L.circleMarker([r.lat, r.lon], {
+      radius: m.r,
+      fillColor: m.color,
+      fillOpacity: r.status === 'Closed' ? 0.3 : 0.8,
+      color: '#fff',
+      weight: 1.5,
+      pane: 'markerPane'
+    });
+    circle.on('mouseover', e => {
+      if(!pinnedTip) showTooltip(r, e.originalEvent.clientX, e.originalEvent.clientY);
+    });
+    circle.on('mouseout', () => {
+      if(!pinnedTip) tip.style.display = 'none';
+    });
+    circle.on('click', e => {
+      L.DomEvent.stopPropagation(e);
+      activeBloom = r;
+      pinnedTip = true;
+      showTooltip(r, e.originalEvent.clientX, e.originalEvent.clientY, true);
+    });
+    circle.addTo(markerLayer);
   });
 }
 
-// ── PAN / ZOOM ─────────────────────────────────────────────────────────────────
-let drag = null;
-canvas.addEventListener('mousedown', e => {
-  drag = {sx: e.clientX, sy: e.clientY, cx: view.cx, cy: view.cy};
-  canvas.classList.add('dragging');
+map.on('click', () => {
+  if(pinnedTip){ pinnedTip = false; tip.style.display = 'none'; }
 });
-window.addEventListener('mousemove', e => {
-  if(drag){
-    const dx = e.clientX - drag.sx;
-    const dy = e.clientY - drag.sy;
-    const lonRange = (CA.lonMax - CA.lonMin) / view.scale;
-    const latRange = (CA.latMax - CA.latMin) / view.scale;
-    view.cx = drag.cx - dx / canvas.width * lonRange;
-    view.cy = drag.cy + dy / canvas.height * latRange;
-    draw();
-  } else {
-    handleHover(e);
-  }
-});
-window.addEventListener('mouseup', () => { drag=null; canvas.classList.remove('dragging'); });
-canvas.addEventListener('wheel', e => {
-  e.preventDefault();
-  zoom(e.deltaY < 0 ? 1.2 : 0.83);
-}, {passive:false});
 
-// Touch support
-let lastTouch = null;
-canvas.addEventListener('touchstart', e => {
-  if(e.touches.length===1){
-    drag={sx:e.touches[0].clientX,sy:e.touches[0].clientY,cx:view.cx,cy:view.cy};
-  }
-});
-canvas.addEventListener('touchmove', e => {
-  e.preventDefault();
-  if(drag && e.touches.length===1){
-    const dx=e.touches[0].clientX-drag.sx, dy=e.touches[0].clientY-drag.sy;
-    const lonRange=(CA.lonMax-CA.lonMin)/view.scale;
-    const latRange=(CA.latMax-CA.latMin)/view.scale;
-    view.cx=drag.cx-dx/canvas.width*lonRange;
-    view.cy=drag.cy+dy/canvas.height*latRange;
-    draw();
-  }
-},{passive:false});
-canvas.addEventListener('touchend', () => { drag=null; });
+function flyTo(lat, lon){
+  map.setView([lat, lon], Math.max(map.getZoom(), 11));
+}
 
-function zoom(factor){
-  view.scale = Math.max(0.8, Math.min(20, view.scale * factor));
-  draw();
-}
-function resetView(){
-  view = {cx:-119.25, cy:37.25, scale:1};
-  draw();
-}
+function resize(){ map.invalidateSize(); }
 
 // ── HOVER / TOOLTIP ────────────────────────────────────────────────────────────
 const tip = document.getElementById('tooltip');
 let pinnedTip = false;
-
-function handleHover(e){
-  if(pinnedTip) return;
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  let best = null, bestDist = 12;
-  filtered.forEach(r => {
-    const [x,y] = project(r.lon, r.lat);
-    const d = Math.hypot(x-mx, y-my);
-    if(d < bestDist){ bestDist=d; best=r; }
-  });
-  if(best){
-    showTooltip(best, e.clientX, e.clientY);
-  } else {
-    tip.style.display='none';
-  }
-}
-canvas.addEventListener('click', e => {
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-  let best = null, bestDist = 14;
-  filtered.forEach(r => {
-    const [x,y] = project(r.lon, r.lat);
-    const d = Math.hypot(x-mx, y-my);
-    if(d < bestDist){ bestDist=d; best=r; }
-  });
-  if(best){
-    activeBloom = best;
-    pinnedTip = true;
-    showTooltip(best, e.clientX, e.clientY, true);
-  } else {
-    pinnedTip = false;
-    tip.style.display='none';
-  }
-});
 
 function showTooltip(r, cx, cy, pinned){
   const m = ADV[r._adv];
@@ -430,7 +301,7 @@ function showTooltip(r, cx, cy, pinned){
   tip.style.top  = (cy + th + 12 > vh ? cy - th    : cy + 12) + 'px';
 }
 document.addEventListener('click', e => {
-  if(!canvas.contains(e.target) && !tip.contains(e.target)) tip.style.display='none';
+  if(!tip.contains(e.target)) { pinnedTip = false; tip.style.display='none'; }
 });
 
 // ── SIGN CONTENT per advisory level (matching CA FHAB official templates) ─────
@@ -770,12 +641,6 @@ function buildLegend(){
       <span class="leg-lbl">${m.label}</span>
       <span class="leg-count">${(counts[k]||0).toLocaleString()}</span>
     </div>`).join('');
-  document.getElementById('mapLegend').innerHTML = Object.entries(ADV)
-    .sort((a,b)=>a[1].order-b[1].order)
-    .map(([k,m])=>`<div class="map-leg-row">
-      <span class="map-leg-dot" style="background:${m.color}"></span>
-      <span style="font-size:.7rem">${m.label}</span>
-    </div>`).join('');
 }
 
 function toggleAdv(key, el){
@@ -845,8 +710,7 @@ fetch("blooms.json")
     document.getElementById('bloomList').innerHTML=`<div class="no-results" style="color:red">Failed to load data: ${err.message}</div>`;
     console.error('blooms.json load error:', err);
   });
-new ResizeObserver(resize).observe(wrap);
-resize();
+new ResizeObserver(resize).observe(document.getElementById('map-wrap'));
 </script>
 </body>
 </html>
