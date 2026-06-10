@@ -167,6 +167,7 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
       <div class="sb-label">Health Reports</div>
       <button id="illnessBtn" onclick="toggleIllnessFilter(this)" style="width:100%;margin-bottom:7px;padding:6px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;font-size:.75rem;font-weight:600;color:var(--sub);">🤒 Illness Reported</button>
       <div class="stats-bar" id="statsBar"></div>
+      <button id="downloadBtn" onclick="downloadFiltered()" style="width:100%;margin-bottom:7px;padding:6px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;font-size:.75rem;font-weight:600;color:var(--sub);">⬇ Download Filtered CSV</button>
       <div class="sb-label">Bloom Reports <span id="listCount" style="font-weight:400;color:var(--sub)"></span></div>
       <div class="bloom-list" id="bloomList"></div>
     </div>
@@ -712,6 +713,25 @@ function toggleToxinType(btn){
     btn.style.color = '#fff';
   }
   applyFilters();
+}
+
+function downloadFiltered(){
+  const header = ['date','water_body','county','region','advisory_level','status','toxin_confirmed','toxin_types','illness_reported','lat','lon','landmark','size','texture','detail'];
+  const rows = filtered.map(r => [
+    r.obs ? r.obs.split('T')[0] : '',
+    r.name||'', r.county||'', r.rwb||'',
+    ADV[r._adv].label, r.status||'',
+    r.toxin ? 'Yes' : 'No',
+    r.toxin_types ? r.toxin_types.join('; ') : '',
+    r.illness ? 'Yes' : 'No',
+    r.lat, r.lon,
+    r.landmark||'', r.size||'', r.texture||'', r.detail||''
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv = [header.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = `CyanoSafe_filtered_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
 }
 
 function applyFilters(){
