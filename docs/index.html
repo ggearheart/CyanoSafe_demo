@@ -528,7 +528,7 @@ function printSign(r){
   signOverlay = document.createElement('div');
   signOverlay.id = 'sign-overlay';
   signOverlay.innerHTML = `
-    <div id="sign-backdrop" onclick="closeSign()" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;">
+    <div id="sign-backdrop" onclick="closeSign()" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;">
       <div onclick="event.stopPropagation()" style="width:100%;max-width:720px;">
         <div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;">
           <button onclick="window.print()" style="padding:8px 20px;background:#003368;color:#fff;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;font-weight:700;">🖨️ Print</button>
