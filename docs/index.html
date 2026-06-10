@@ -117,6 +117,7 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <header>
@@ -180,6 +181,32 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
       <button id="illnessBtn" onclick="toggleIllnessFilter(this)" style="width:100%;margin-bottom:7px;padding:6px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;font-size:.75rem;font-weight:600;color:var(--sub);">🤒 Illness Reported</button>
       <div class="stats-bar" id="statsBar"></div>
       <button id="downloadBtn" onclick="downloadFiltered()" style="width:100%;margin-bottom:7px;padding:6px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;font-size:.75rem;font-weight:600;color:var(--sub);">⬇ Download Filtered CSV</button>
+      <!-- Report a Bloom section -->
+      <details id="report-bloom-details" style="margin-bottom:10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);overflow:hidden;">
+        <summary style="padding:8px 12px;cursor:pointer;font-size:.75rem;font-weight:700;color:var(--ca-blue);list-style:none;display:flex;align-items:center;gap:6px;user-select:none;">
+          <span>📋</span><span>Report a Bloom</span><span style="margin-left:auto;font-size:.85em;opacity:.6;">▾</span>
+        </summary>
+        <div style="padding:10px 12px 12px;border-top:1px solid var(--border);">
+          <p style="margin:0 0 8px;font-size:.72rem;color:var(--sub);line-height:1.5;">
+            Observed a bloom? Report it to the <strong>CA State Water Board FHAB Program</strong> — reports help protect public health.
+          </p>
+          <ol style="margin:0 0 10px;padding-left:18px;font-size:.72rem;color:var(--sub);line-height:1.8;">
+            <li>Go to the CA Water Boards FHAB page</li>
+            <li>Click <strong>"Submit a Bloom Report"</strong></li>
+            <li>Fill in location, date, and photos</li>
+            <li>Submit — staff will follow up</li>
+          </ol>
+          <a href="https://www.waterboards.ca.gov/water_issues/programs/swamp/freshwater_cyanobacteria.html"
+             target="_blank" rel="noopener"
+             style="display:block;text-align:center;padding:7px;background:var(--ca-blue);color:#fff;border-radius:var(--radius);font-size:.75rem;font-weight:700;text-decoration:none;margin-bottom:10px;">
+            Open FHAB Reporting Page ↗
+          </a>
+          <div style="text-align:center;">
+            <div id="report-qr" style="display:inline-block;"></div>
+            <div style="font-size:.65rem;color:var(--sub);margin-top:4px;">Scan to open on your phone</div>
+          </div>
+        </div>
+      </details>
       <div class="sb-label">Bloom Reports <span id="listCount" style="font-weight:400;color:var(--sub)"></span></div>
       <div class="bloom-list" id="bloomList"></div>
     </div>
@@ -979,6 +1006,18 @@ fetch("blooms.json")
     console.error('blooms.json load error:', err);
   });
 new ResizeObserver(resize).observe(document.getElementById('map-wrap'));
+
+// QR code for bloom reporting page
+(function(){
+  const el = document.getElementById('report-qr');
+  if(!el || typeof QRCode === 'undefined') return;
+  new QRCode(el, {
+    text: 'https://www.waterboards.ca.gov/water_issues/programs/swamp/freshwater_cyanobacteria.html',
+    width: 120, height: 120,
+    colorDark: '#003368', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+})();
 </script>
 </body>
 </html>
