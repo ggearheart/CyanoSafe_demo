@@ -101,6 +101,7 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
 .day-btn{flex:1;padding:5px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;font-size:.75rem;font-weight:600;color:var(--sub);}
 .day-btn:hover{background:#e2e8f0;}
 .day-btn.active{background:var(--ca-blue);border-color:var(--ca-blue);color:#fff;}
+@media print{body>*:not(#sign-overlay){display:none!important;}#sign-overlay{position:static!important;}#sign-backdrop{position:static!important;background:none!important;padding:0!important;display:block!important;}.no-print{display:none!important;}}
 #tooltip .qr-wrap{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:7px;border-top:1px solid var(--border);}
 #tooltip .qr-wrap canvas{border-radius:4px;}
 #tooltip .qr-label{font-size:.64rem;color:var(--sub);line-height:1.4;}
@@ -431,70 +432,244 @@ document.addEventListener('click', e => {
   if(!canvas.contains(e.target) && !tip.contains(e.target)) tip.style.display='none';
 });
 
-function printSign(r){
-  const m = ADV[r._adv];
-  const g = GUIDANCE['en'][r._adv];
-  const qrUrl = `${location.origin}${location.pathname}?q=${encodeURIComponent(r.name||'')}`;
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=4&data=${encodeURIComponent(qrUrl)}`;
-  const obs = r.obs ? r.obs.split('T')[0] : '';
-  const w = window.open('','_blank','width=680,height=900');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
-<title>HAB Advisory Sign — ${r.name||'Water Body'}</title>
-<style>
-  @page{size:letter;margin:.5in}
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Helvetica Neue',Arial,sans-serif;background:#fff;color:#111;padding:20px;}
-  .sign{border:6px solid ${m.color};border-radius:12px;overflow:hidden;max-width:6.5in;margin:0 auto;}
-  .sign-header{background:${m.color};color:#fff;padding:18px 24px;text-align:center;}
-  .sign-header .adv{font-size:2rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;}
-  .sign-header .name{font-size:1.1rem;font-weight:600;margin-top:4px;opacity:.92;}
-  .sign-body{padding:20px 24px;display:flex;gap:20px;align-items:flex-start;}
-  .sign-text{flex:1;}
-  .sign-text .hdr{font-size:1rem;font-weight:800;margin-bottom:8px;color:${m.color};}
-  .sign-text .body{font-size:.9rem;line-height:1.6;color:#333;}
-  .sign-meta{font-size:.78rem;color:#666;margin-top:12px;border-top:1px solid #eee;padding-top:10px;}
-  .sign-meta span{display:block;margin-bottom:3px;}
-  .sign-qr{flex-shrink:0;text-align:center;}
-  .sign-qr img{border:2px solid #ddd;border-radius:6px;display:block;}
-  .sign-qr p{font-size:.65rem;color:#666;margin-top:5px;line-height:1.3;}
-  .sign-footer{background:#f5f5f5;border-top:2px solid ${m.color};padding:10px 24px;display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:#555;}
-  @media print{
-    body{padding:0;}
-    .no-print{display:none;}
+// ── SIGN CONTENT per advisory level (matching CA FHAB official templates) ─────
+const SIGN = {
+  Danger: {
+    color:'#C62828', bg:'#ffebee',
+    en: {
+      level:'DANGER', headline:'HARMFUL ALGAL BLOOM',
+      sub:'Stay out of the water until further notice.',
+      items:[
+        {icon:'🚫🏊',text:'No swimming, wading, or water sports'},
+        {icon:'🚫🐕',text:'Keep pets and animals out of and away from the water'},
+        {icon:'🚫🐟',text:'Do not eat fish, shellfish, or other animals from this water'},
+        {icon:'🚫💧',text:'Do not drink, cook with, or wash dishes with this water'},
+        {icon:'⚠️',   text:'Boiling or filtering does NOT remove toxins'},
+        {icon:'🚿',   text:'Rinse with clean water if skin contact occurs'},
+      ],
+      footer:'If you or your pet feel ill after contact with this water, seek medical/veterinary attention immediately.'
+    },
+    es: {
+      level:'PELIGRO', headline:'FLORACIÓN DAÑINA DE ALGAS',
+      sub:'No entre al agua hasta nuevo aviso.',
+      items:[
+        {icon:'🚫🏊',text:'No nadar, vadear ni hacer deportes acuáticos'},
+        {icon:'🚫🐕',text:'No permita que mascotas o animales entren o beban el agua'},
+        {icon:'🚫🐟',text:'No coma peces, mariscos ni otros animales de esta agua'},
+        {icon:'🚫💧',text:'No beba, cocine ni lave con esta agua'},
+        {icon:'⚠️',   text:'Hervir o filtrar NO elimina las toxinas'},
+        {icon:'🚿',   text:'Enjuáguese con agua limpia si hay contacto con la piel'},
+      ],
+      footer:'Si usted o su mascota se sienten mal después del contacto, busque atención médica/veterinaria de inmediato.'
+    }
+  },
+  Warning: {
+    color:'#E65100', bg:'#fff3e0',
+    en: {
+      level:'WARNING', headline:'HARMFUL ALGAL BLOOM',
+      sub:'No swimming. Stay away from scum and discolored water.',
+      items:[
+        {icon:'🚫🏊',text:'No swimming or wading'},
+        {icon:'🚫🐕',text:'Keep pets and animals out of and away from the water'},
+        {icon:'⚠️🐟',text:'Avoid eating fish or shellfish from this water body'},
+        {icon:'🚫💧',text:'Do not drink, cook with, or wash dishes with this water'},
+        {icon:'⚠️',   text:'Boiling or filtering does NOT remove toxins'},
+        {icon:'🚿',   text:'Rinse with clean water if skin contact occurs'},
+      ],
+      footer:'People and animals exposed to bloom water may experience illness. Seek medical/veterinary attention if symptoms develop.'
+    },
+    es: {
+      level:'ADVERTENCIA', headline:'FLORACIÓN DAÑINA DE ALGAS',
+      sub:'No nadar. Aléjese de espumas y agua decolorada.',
+      items:[
+        {icon:'🚫🏊',text:'No nadar ni vadear'},
+        {icon:'🚫🐕',text:'No permita que mascotas o animales entren o beban el agua'},
+        {icon:'⚠️🐟',text:'Evite comer peces o mariscos de este cuerpo de agua'},
+        {icon:'🚫💧',text:'No beba, cocine ni lave con esta agua'},
+        {icon:'⚠️',   text:'Hervir o filtrar NO elimina las toxinas'},
+        {icon:'🚿',   text:'Enjuáguese con agua limpia si hay contacto con la piel'},
+      ],
+      footer:'Las personas y animales expuestos pueden enfermarse. Busque atención médica/veterinaria si aparecen síntomas.'
+    }
+  },
+  Caution: {
+    color:'#F9A825', bg:'#fffde7',
+    en: {
+      level:'CAUTION', headline:'HARMFUL ALGAL BLOOM',
+      sub:'You can swim in this water, but stay away from algae and scum.',
+      items:[
+        {icon:'⚠️🏊',text:'Avoid swimming in or near visible algae or scum'},
+        {icon:'🚫🐕',text:'Do not let pets or animals drink or go into scum areas'},
+        {icon:'⚠️🐟',text:'Avoid eating shellfish from this water body'},
+        {icon:'🚫💧',text:'Do not drink this water'},
+        {icon:'⚠️',   text:'Boiling or filtering does NOT remove toxins'},
+        {icon:'🚿',   text:'Rinse with clean water after any water contact'},
+      ],
+      footer:'A harmful algal bloom has been observed. Conditions may change — check back for updates before water activities.'
+    },
+    es: {
+      level:'PRECAUCIÓN', headline:'FLORACIÓN DAÑINA DE ALGAS',
+      sub:'Puede nadar, pero aléjese de algas y espumas.',
+      items:[
+        {icon:'⚠️🏊',text:'Evite nadar cerca de algas o espumas visibles'},
+        {icon:'🚫🐕',text:'No permita que mascotas beban o entren en zonas con espuma'},
+        {icon:'⚠️🐟',text:'Evite comer mariscos de este cuerpo de agua'},
+        {icon:'🚫💧',text:'No beba esta agua'},
+        {icon:'⚠️',   text:'Hervir o filtrar NO elimina las toxinas'},
+        {icon:'🚿',   text:'Enjuáguese con agua limpia después de cualquier contacto'},
+      ],
+      footer:'Se ha observado una floración dañina. Las condiciones pueden cambiar — consulte antes de actividades acuáticas.'
+    }
+  },
+  Watch: {
+    color:'#00796B', bg:'#e0f2f1',
+    en: {
+      level:'WATCH / AWARENESS', headline:'HARMFUL ALGAL BLOOM OBSERVED',
+      sub:'A bloom has been observed. Stay alert and avoid contact with visible algae.',
+      items:[
+        {icon:'👀',   text:'Watch for and avoid contact with visible scum or discolored water'},
+        {icon:'🚫🐕',text:'Keep pets away from scum or foam areas'},
+        {icon:'⚠️🏊',text:'Avoid swallowing water while swimming'},
+        {icon:'🚿',   text:'Rinse with clean water after water contact'},
+      ],
+      footer:'Monitoring is ongoing. Check back for updates. Report new sightings to mywaterquality.ca.gov'
+    },
+    es: {
+      level:'VIGILANCIA', headline:'FLORACIÓN DE ALGAS OBSERVADA',
+      sub:'Se observó una floración. Esté alerta y evite el contacto con algas visibles.',
+      items:[
+        {icon:'👀',   text:'Observe y evite el contacto con espumas o agua decolorada'},
+        {icon:'🚫🐕',text:'Mantenga mascotas alejadas de zonas con espuma'},
+        {icon:'⚠️🏊',text:'Evite tragar agua al nadar'},
+        {icon:'🚿',   text:'Enjuáguese con agua limpia después del contacto'},
+      ],
+      footer:'El monitoreo está en curso. Consulte para actualizaciones. Reporte avistamientos en mywaterquality.ca.gov'
+    }
+  },
+  Mat: {
+    color:'#5D4037', bg:'#efebe9',
+    en: {
+      level:'ALGAL MAT ALERT', headline:'TOXIC ALGAL MAT',
+      sub:'A toxic benthic algal mat has been detected. Do not touch mat material.',
+      items:[
+        {icon:'🚫✋',text:'Do not touch mat material — it may look like brown/black slime or grass clippings'},
+        {icon:'🚫🐕',text:'Keep pets and animals away — toxins can be fatal rapidly'},
+        {icon:'🚫🐟',text:'Do not eat fish from this water body'},
+        {icon:'🚿',   text:'Wash hands thoroughly after any contact'},
+      ],
+      footer:'Mats can dislodge and float. Even clear water may contain toxins near a mat. Seek veterinary care immediately if a pet contacts mat material.'
+    },
+    es: {
+      level:'ALERTA: TAPETE ALGAL', headline:'TAPETE ALGAL TÓXICO',
+      sub:'Se detectó un tapete algal bentónico tóxico. No toque el material del tapete.',
+      items:[
+        {icon:'🚫✋',text:'No toque el tapete — puede verse como limo café/negro o recortes de pasto'},
+        {icon:'🚫🐕',text:'Mantenga mascotas alejadas — las toxinas pueden ser letales rápidamente'},
+        {icon:'🚫🐟',text:'No coma peces de este cuerpo de agua'},
+        {icon:'🚿',   text:'Lávese las manos concienzudamente después de cualquier contacto'},
+      ],
+      footer:'Los tapetes pueden desprenderse y flotar. Busque atención veterinaria de inmediato si una mascota toca el material.'
+    }
+  },
+  Other: {
+    color:'#607D8B', bg:'#eceff1',
+    en: {
+      level:'INFORMATIONAL', headline:'HARMFUL ALGAL BLOOM MONITORING',
+      sub:'Monitoring is in progress at this location.',
+      items:[
+        {icon:'👀',   text:'Be aware of algae and avoid contact with visible scum'},
+        {icon:'🚫🐕',text:'Keep pets away from scum or discolored water'},
+        {icon:'🚿',   text:'Rinse with clean water after any water contact'},
+      ],
+      footer:'No advisory is currently in effect. Conditions are being monitored. Check mywaterquality.ca.gov for updates.'
+    },
+    es: {
+      level:'INFORMATIVO', headline:'MONITOREO DE ALGAS DAÑINAS',
+      sub:'Se está realizando monitoreo en este lugar.',
+      items:[
+        {icon:'👀',   text:'Esté atento a las algas y evite el contacto con espumas visibles'},
+        {icon:'🚫🐕',text:'Mantenga mascotas alejadas de espumas o agua decolorada'},
+        {icon:'🚿',   text:'Enjuáguese con agua limpia después de cualquier contacto'},
+      ],
+      footer:'Actualmente no hay aviso en vigor. Las condiciones están siendo monitoreadas. Consulte mywaterquality.ca.gov'
+    }
   }
-</style>
-</head><body>
-<div class="no-print" style="text-align:center;margin-bottom:16px;">
-  <button onclick="window.print()" style="padding:8px 24px;background:#003368;color:#fff;border:none;border-radius:6px;font-size:.9rem;cursor:pointer;font-weight:700;">🖨️ Print</button>
-</div>
-<div class="sign">
-  <div class="sign-header">
-    <div class="adv">${g.hdr}</div>
-    <div class="name">${r.name||'Unknown Water Body'}${r.county ? ' — '+r.county+' County' : ''}</div>
-  </div>
-  <div class="sign-body">
-    <div class="sign-text">
-      <div class="hdr">Public Health Advisory</div>
-      <div class="body">${g.body}</div>
-      <div class="sign-meta">
-        ${obs ? `<span>📅 Observed: ${obs}</span>` : ''}
-        ${r.status ? `<span>📋 Status: ${r.status}</span>` : ''}
-        ${r.rwb ? `<span>🏛 ${r.rwb}</span>` : ''}
-        <span style="margin-top:6px;font-size:.7rem;">Issued by California State Water Resources Control Board — FHAB Program</span>
+};
+
+let signOverlay = null;
+
+function printSign(r){
+  const s = SIGN[r._adv] || SIGN.Other;
+  const qrUrl = `${location.origin}${location.pathname}?q=${encodeURIComponent(r.name||'')}`;
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=4&data=${encodeURIComponent(qrUrl)}`;
+  const obs = r.obs ? r.obs.split('T')[0] : '';
+  const loc = [r.name, r.county ? r.county+' County' : '', r.rwb].filter(Boolean);
+
+  function signHTML(lang){
+    const t = s[lang];
+    return `
+    <div class="ca-sign" style="border:5px solid ${s.color};border-radius:10px;overflow:hidden;font-family:'Helvetica Neue',Arial,sans-serif;max-width:680px;margin:0 auto;background:#fff;">
+      <div style="background:${s.color};color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.85;">California State Water Resources Control Board</div>
+          <div style="font-size:1.7rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase;line-height:1.1;">${t.level}</div>
+          <div style="font-size:1rem;font-weight:700;margin-top:2px;">${t.headline}</div>
+        </div>
+        <div style="font-size:2.8rem;opacity:.9;">🌊</div>
       </div>
-    </div>
-    <div class="sign-qr">
-      <img src="${qrSrc}" width="130" height="130" alt="QR code"/>
-      <p>Scan for live<br>HAB alerts at<br>this location</p>
-    </div>
-  </div>
-  <div class="sign-footer">
-    <span>🌊 CyanoSafe CA — Harmful Algal Bloom Safety Map</span>
-    <span>Report sightings: cyanotracker.ca.gov</span>
-  </div>
-</div>
-</body></html>`);
-  w.document.close();
+      <div style="background:${s.bg};padding:10px 20px;border-bottom:2px solid ${s.color};">
+        <div style="font-size:1rem;font-weight:800;color:${s.color};">${loc[0]||'Water Body'}</div>
+        <div style="font-size:.78rem;color:#555;">${loc.slice(1).join(' · ')}</div>
+      </div>
+      <div style="padding:14px 20px 0;display:flex;gap:16px;">
+        <div style="flex:1;">
+          <div style="font-size:.95rem;font-weight:700;margin-bottom:10px;color:#111;">${t.sub}</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${t.items.map(i=>`<div style="display:flex;align-items:flex-start;gap:8px;font-size:.82rem;line-height:1.4;"><span style="font-size:1rem;flex-shrink:0;">${i.icon}</span><span>${i.text}</span></div>`).join('')}
+          </div>
+          <div style="margin-top:10px;padding:8px 10px;background:${s.bg};border-left:3px solid ${s.color};font-size:.72rem;color:#444;line-height:1.45;">${t.footer}</div>
+          ${obs?`<div style="font-size:.68rem;color:#777;margin-top:6px;">📅 Observed: ${obs}${r.status?' · Status: '+r.status:''}</div>`:''}
+        </div>
+        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <img src="${qrSrc}" width="120" height="120" alt="QR" style="border:2px solid #ddd;border-radius:6px;"/>
+          <div style="font-size:.6rem;color:#666;text-align:center;line-height:1.4;">Scan for live<br>HAB alerts</div>
+        </div>
+      </div>
+      <div style="margin:10px 20px 0;border-top:1px solid #ddd;padding:8px 0;display:flex;justify-content:space-between;align-items:center;font-size:.62rem;color:#777;">
+        <span>mywaterquality.ca.gov/habs</span>
+        <span>CyanoSafe CA · FHAB Program</span>
+        <span>Report: 1-844-729-6466</span>
+      </div>
+      <div style="padding:8px 20px 14px;display:flex;justify-content:center;">
+        <div style="width:90%;height:3px;background:${s.color};border-radius:2px;opacity:.25;"></div>
+      </div>
+    </div>`;
+  }
+
+  // Remove any existing overlay
+  if(signOverlay) signOverlay.remove();
+
+  signOverlay = document.createElement('div');
+  signOverlay.id = 'sign-overlay';
+  signOverlay.innerHTML = `
+    <div id="sign-backdrop" onclick="closeSign()" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;">
+      <div onclick="event.stopPropagation()" style="width:100%;max-width:720px;">
+        <div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;">
+          <button onclick="window.print()" style="padding:8px 20px;background:#003368;color:#fff;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;font-weight:700;">🖨️ Print</button>
+          <button onclick="closeSign()" style="padding:8px 16px;background:#fff;color:#333;border:1px solid #ccc;border-radius:6px;font-size:.85rem;cursor:pointer;">✕ Close</button>
+        </div>
+        <div id="sign-content">
+          ${signHTML('en')}
+          <div style="margin:16px 0;border-top:2px dashed #ccc;"></div>
+          ${signHTML('es')}
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(signOverlay);
+}
+
+function closeSign(){
+  if(signOverlay){ signOverlay.remove(); signOverlay=null; }
 }
 
 // ── FILTERS & SIDEBAR ─────────────────────────────────────────────────────────
