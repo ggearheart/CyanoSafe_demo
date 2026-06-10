@@ -287,7 +287,7 @@ function showTooltip(r, cx, cy, pinned){
   const wbCount = RAW.filter(x => x.name === r.name).length;
   tip.innerHTML = `
     <h3>${r.name||'Unknown water body'}</h3>
-    <a href="#" onclick="event.preventDefault();showWaterBodyPopup(${JSON.stringify(r.name||'')})" style="pointer-events:auto;display:inline-block;font-size:.72rem;color:var(--ca-blue);text-decoration:none;margin-bottom:4px;">📋 ${wbCount} record${wbCount===1?'':'s'} for this water body</a>
+    <a href="#" id="wb-summary-link" style="pointer-events:auto;display:inline-block;font-size:.72rem;color:var(--ca-blue);text-decoration:none;margin-bottom:4px;">📋 ${wbCount} record${wbCount===1?'':'s'} for this water body</a>
     <span class="t-badge" style="background:${m.color}">${lang==='en'?m.label:m.label_es}</span>
     <table>${rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
     <div class="guidance g-${r._adv}"><strong>${g.hdr}</strong>${g.body}</div>
@@ -299,6 +299,8 @@ function showTooltip(r, cx, cy, pinned){
   `;
   tip.style.display = 'block';
   tip.style.pointerEvents = pinned ? 'auto' : 'none';
+  const wbLink = document.getElementById('wb-summary-link');
+  if(wbLink) wbLink.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); showWaterBodyPopup(r.name); });
   const tw = 290, th = 220;
   const vw = window.innerWidth, vh = window.innerHeight;
   tip.style.left = (cx + tw + 12 > vw ? cx - tw - 8 : cx + 12) + 'px';
