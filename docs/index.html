@@ -164,6 +164,8 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
         <button class="toxin-type-btn" data-type="Cylindrospermopsin" onclick="toggleToxinType(this)" style="padding:3px 8px;border:1px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;font-size:.71rem;font-weight:600;color:var(--sub);">Cylindrospermopsin</button>
         <button class="toxin-type-btn" data-type="Saxitoxin" onclick="toggleToxinType(this)" style="padding:3px 8px;border:1px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;font-size:.71rem;font-weight:600;color:var(--sub);">Saxitoxin</button>
       </div>
+      <div class="sb-label">Health Reports</div>
+      <button id="illnessBtn" onclick="toggleIllnessFilter(this)" style="width:100%;margin-bottom:7px;padding:6px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;font-size:.75rem;font-weight:600;color:var(--sub);">🤒 Illness Reported</button>
       <div class="stats-bar" id="statsBar"></div>
       <div class="sb-label">Bloom Reports <span id="listCount" style="font-weight:400;color:var(--sub)"></span></div>
       <div class="bloom-list" id="bloomList"></div>
@@ -221,6 +223,7 @@ let filtered = [];
 let advFilter = new Set();
 let toxinOnly = false;
 let toxinTypeFilter = new Set();
+let illnessOnly = false;
 
 // Classify all records once
 RAW.forEach(r => r._adv = classifyAdv(r.adv));
@@ -300,13 +303,16 @@ function showTooltip(r, cx, cy, pinned){
   const qrUrl = `${location.origin}${location.pathname}?id=${encodeURIComponent(r.id||'')}`;
   const wbCount = RAW.filter(x => x.name === r.name).length;
   const toxinBadge = r.toxin
-    ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#7c3aed;color:#fff;font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:6px;">🧪 Cyanotoxins detected</span>`
+    ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#7c3aed;color:#fff;font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:4px;">🧪 Cyanotoxins detected</span>`
+    : '';
+  const illnessBadge = r.illness
+    ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#b91c1c;color:#fff;font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:4px;">🤒 Illness reported</span>`
     : '';
   tip.innerHTML = `
     <h3>${r.name||'Unknown water body'}</h3>
     <a href="#" id="wb-summary-link" style="pointer-events:auto;display:inline-block;font-size:.72rem;color:var(--ca-blue);text-decoration:none;margin-bottom:4px;">📋 ${wbCount} record${wbCount===1?'':'s'} for this water body</a>
     <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px;">
-      <span class="t-badge" style="background:${m.color};margin:0;">${lang==='en'?m.label:m.label_es}</span>${toxinBadge}
+      <span class="t-badge" style="background:${m.color};margin:0;">${lang==='en'?m.label:m.label_es}</span>${toxinBadge}${illnessBadge}
     </div>
     <table>${rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
     <div class="guidance g-${r._adv}"><strong>${g.hdr}</strong>${g.body}</div>
@@ -685,6 +691,13 @@ function toggleToxinFilter(btn){
   btn.style.color = toxinOnly ? '#fff' : 'var(--sub)';
   applyFilters();
 }
+function toggleIllnessFilter(btn){
+  illnessOnly = !illnessOnly;
+  btn.style.background = illnessOnly ? '#b91c1c' : 'var(--bg)';
+  btn.style.borderColor = illnessOnly ? '#b91c1c' : 'var(--border)';
+  btn.style.color = illnessOnly ? '#fff' : 'var(--sub)';
+  applyFilters();
+}
 function toggleToxinType(btn){
   const type = btn.dataset.type;
   if(toxinTypeFilter.has(type)){
@@ -719,6 +732,7 @@ function applyFilters(){
     if(dateTo   && (!obs || obs > dateTo))   return false;
     if(toxinOnly && !r.toxin) return false;
     if(toxinTypeFilter.size && !(r.toxin_types && r.toxin_types.some(t => toxinTypeFilter.has(t)))) return false;
+    if(illnessOnly && !r.illness) return false;
     return true;
   });
   draw();
