@@ -298,6 +298,7 @@ function showTooltip(r, cx, cy, pinned){
     </div>
     <table>${rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
     <div class="guidance g-${r._adv}"><strong>${g.hdr}</strong>${g.body}</div>
+    ${r.detail ? `<div style="margin-top:7px;padding:7px 9px;background:#f8fafc;border-left:3px solid #cbd5e1;border-radius:0 4px 4px 0;font-size:.72rem;color:#475569;line-height:1.5;"><strong style="display:block;margin-bottom:2px;color:#334155;">Advisory Basis</strong>${r.detail}</div>` : ''}
     <div class="qr-wrap">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&margin=2&data=${encodeURIComponent(qrUrl)}" width="64" height="64" alt="QR code" style="border-radius:4px;"/>
       <div class="qr-label"><strong>Scan for current info</strong>Scan to view live HAB alerts<br>for this water body</div>
