@@ -74,4 +74,4 @@ def health():
     return {"status": "ok", "records": len(load_blooms())}
 
 
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.mount("/", StaticFiles(directory="docs", html=True), name="static")
