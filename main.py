@@ -56,6 +56,7 @@ def load_blooms() -> list[dict]:
             "size":     _clean(row.get("Bloom_Size")),
             "texture":  _clean(row.get("Bloom_Texture")),
             "location": _clean(row.get("Bloom_Location")),
+            "landmark": _clean(row.get("Landmark")),
             "wtype":    _clean(row.get("Water_Body_Type")),
             "wuse":     _clean(row.get("Water_Body_Use")),
             "resp":     _clean(row.get("Response_Type")),

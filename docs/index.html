@@ -125,7 +125,7 @@ select.filter{width:100%;padding:5px 7px;border:1px solid var(--border);
   <div class="sidebar">
     <div class="sb-scroll">
       <div class="sb-label" id="lbl-search">Search</div>
-      <input class="search-box" id="search" type="search" placeholder="Water body or county…" oninput="applyFilters()"/>
+      <input class="search-box" id="search" type="search" placeholder="Water body, location or county…" oninput="applyFilters()"/>
       <div class="sb-label" id="lbl-adv">Advisory Level</div>
       <div class="legend" id="legend"></div>
       <div class="sb-label" id="lbl-status">Status</div>
@@ -688,7 +688,7 @@ function applyFilters(){
     if(status && r.status !== status) return false;
     if(county && r.county !== county) return false;
     if(rwb && r.rwb !== rwb) return false;
-    if(q && !((r.name||'')+(r.county||'')).toLowerCase().includes(q)) return false;
+    if(q && !((r.name||'')+' '+(r.county||'')+' '+(r.landmark||'')+' '+(r.rwb||'')).toLowerCase().includes(q)) return false;
     const obs = r.obs ? r.obs.slice(0,10) : null;
     if(dateFrom && (!obs || obs < dateFrom)) return false;
     if(dateTo   && (!obs || obs > dateTo))   return false;
@@ -781,7 +781,7 @@ function setLang(l, btn){
   Object.entries(LABELS[l]).forEach(([id,txt])=>{
     const el=document.getElementById(id); if(el) el.textContent=txt;
   });
-  document.getElementById('search').placeholder=l==='en'?'Water body or county…':'Cuerpo de agua o condado…';
+  document.getElementById('search').placeholder=l==='en'?'Water body, location or county…':'Cuerpo de agua o condado…';
   // Update legend labels
   document.querySelectorAll('.leg-lbl').forEach(el=>{
     const key=el.closest('.leg-row')?.dataset.key;
