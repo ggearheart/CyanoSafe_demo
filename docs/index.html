@@ -898,14 +898,14 @@ function renderList(data){
 
 function renderStats(data){
   const bar = document.getElementById('statsBar');
-  const active = data.filter(r=>r.status&&['Open','Ongoing','Re-opened'].includes(r.status)).length;
+  const warning = data.filter(r=>r.adv&&r.adv.includes('Warning')).length;
+  const caution = data.filter(r=>r.adv&&r.adv.includes('Caution')).length;
   const danger = data.filter(r=>r._adv==='Danger').length;
-  const counties = new Set(data.map(r=>r.county).filter(Boolean)).size;
   bar.innerHTML=`
     <div class="stat-card"><div class="stat-num">${data.length.toLocaleString()}</div><div class="stat-lbl">${lang==='en'?'Reports':'Reportes'}</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--danger)">${danger}</div><div class="stat-lbl">${lang==='en'?'Danger':'Peligro'}</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--watch)">${active}</div><div class="stat-lbl">${lang==='en'?'Active':'Activos'}</div></div>
-    <div class="stat-card"><div class="stat-num">${counties}</div><div class="stat-lbl">${lang==='en'?'Counties':'Condados'}</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--warning)">${warning}</div><div class="stat-lbl">${lang==='en'?'Warning':'Advertencia'}</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--caution)">${caution}</div><div class="stat-lbl">${lang==='en'?'Caution':'Precaución'}</div></div>
   `;
 }
 
