@@ -602,7 +602,7 @@ function showWaterBodyPopup(name){
         </div>
       </div>
       <div id="wb-mini-map" style="height:200px;width:100%;"></div>
-      <div style="overflow-x:auto;max-height:340px;overflow-y:auto;">
+      <div style="overflow-x:auto;max-height:340px;overflow-y:auto;" id="wb-fhab-table">
         <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
           <thead style="position:sticky;top:0;z-index:1;">
             <tr style="background:#f4f6f8;text-align:left;">
@@ -631,6 +631,7 @@ function showWaterBodyPopup(name){
           </tbody>
         </table>
       </div>
+      <div id="wb-sfei-section"></div>
     </div>`;
   overlay.addEventListener('click', () => overlay.remove());
   document.body.appendChild(overlay);
@@ -646,6 +647,80 @@ function showWaterBodyPopup(name){
     L.circleMarker([r.lat,r.lon],{radius:6,fillColor:m.color,fillOpacity:0.85,color:'#fff',weight:1.5}).addTo(miniMap);
   });
   if(latlngs.length) miniMap.fitBounds(L.latLngBounds(latlngs).pad(0.4));
+
+  // SFEI satellite cyano index
+  const sfeiSection = document.getElementById('wb-sfei-section');
+  const widEntry = WID_MAP[name];
+  if(widEntry){
+    sfeiSection.innerHTML = `<div style="padding:12px 18px;font-size:.78rem;color:#64748b;border-top:1px solid #eee;">🛰 Loading satellite cyano data…</div>`;
+    const wid = widEntry.wid;
+    const today = new Date();
+    const dateTo = today.toISOString().slice(0,10).replace(/-/g,'');
+    const dateFrom = new Date(today.setFullYear(today.getFullYear()-2)).toISOString().slice(0,10).replace(/-/g,'');
+    fetch(`https://fhab-api.sfei.org/cyano/10daymax/${wid}/${dateFrom}/${dateTo}/ci_modified`)
+      .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(data=>{
+        // Filter to rows that have a mean value
+        const rows = data.filter(d=>d.mean!=null);
+        if(!rows.length){ sfeiSection.innerHTML=''; return; }
+
+        // ci_modified thresholds: <50 low, 50-300 moderate, >300 high
+        function ciLevel(v){
+          if(v==null) return {label:'—',color:'#94a3b8'};
+          if(v<50)   return {label:'Low',color:'#16a34a'};
+          if(v<300)  return {label:'Moderate',color:'#d97706'};
+          return          {label:'High',color:'#dc2626'};
+        }
+
+        const vals = rows.map(d=>d.mean);
+        const max = Math.max(...vals), mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+        const latest = rows[rows.length-1];
+        const latestLevel = ciLevel(latest.mean);
+        const maxLevel = ciLevel(max);
+
+        // Sparkline: 60px tall, one bar per reading
+        const W=300, H=48, pad=2;
+        const barW = Math.max(1, Math.floor((W - pad*(rows.length-1)) / rows.length));
+        const scale = v => H - Math.round((v/1000)*H);
+        const bars = rows.map((d,i)=>{
+          const lv = ciLevel(d.mean);
+          const x = i*(barW+pad), barH = Math.max(2, H - scale(d.mean));
+          return `<rect x="${x}" y="${H-barH}" width="${barW}" height="${barH}" fill="${lv.color}" opacity="0.85"><title>${d.date}: ${Math.round(d.mean)}</title></rect>`;
+        }).join('');
+        const sparkline = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;border-radius:3px;background:#f8fafc;">${bars}</svg>`;
+
+        sfeiSection.innerHTML = `
+          <div style="border-top:2px solid #e2e8f0;padding:14px 18px 16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div style="font-weight:700;font-size:.82rem;color:#334155;">🛰 Satellite Cyano Index <span style="font-weight:400;color:#94a3b8;font-size:.74rem;">(SFEI · 10-day composite · past 2 yrs)</span></div>
+            </div>
+            <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;">
+              <div style="text-align:center;">
+                <div style="font-size:.68rem;color:#64748b;margin-bottom:2px;">Latest reading</div>
+                <span style="background:${latestLevel.color};color:#fff;padding:2px 9px;border-radius:4px;font-size:.75rem;font-weight:700;">${latestLevel.label} (${Math.round(latest.mean)})</span>
+                <div style="font-size:.67rem;color:#94a3b8;margin-top:2px;">${latest.date}</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:.68rem;color:#64748b;margin-bottom:2px;">2-yr peak</div>
+                <span style="background:${maxLevel.color};color:#fff;padding:2px 9px;border-radius:4px;font-size:.75rem;font-weight:700;">${maxLevel.label} (${Math.round(max)})</span>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:.68rem;color:#64748b;margin-bottom:2px;">2-yr mean</div>
+                <span style="background:#475569;color:#fff;padding:2px 9px;border-radius:4px;font-size:.75rem;font-weight:700;">${Math.round(mean)}</span>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:.68rem;color:#64748b;margin-bottom:2px;">Readings</div>
+                <span style="font-size:.82rem;font-weight:700;color:#334155;">${rows.length}</span>
+              </div>
+            </div>
+            <div style="margin-bottom:6px;">${sparkline}</div>
+            <div style="display:flex;justify-content:space-between;font-size:.65rem;color:#94a3b8;">
+              <span>${rows[0].date}</span><span style="font-size:.65rem;color:#94a3b8;">CI scale: 0–1000 · <span style="color:#16a34a">■</span>Low &lt;50 · <span style="color:#d97706">■</span>Moderate 50–300 · <span style="color:#dc2626">■</span>High &gt;300</span><span>${rows[rows.length-1].date}</span>
+            </div>
+          </div>`;
+      })
+      .catch(()=>{ sfeiSection.innerHTML=''; });
+  }
 
   // Download CSV
   document.getElementById('wb-download-btn').addEventListener('click', ()=>{
@@ -852,6 +927,9 @@ function setLang(l, btn){
 }
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
+let WID_MAP = {};
+fetch("wid_map.json").then(r=>r.json()).then(d=>{ WID_MAP=d; }).catch(()=>{});
+
 buildLegend();
 populateSelects();
 fetch("blooms.json")
