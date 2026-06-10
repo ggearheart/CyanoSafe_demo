@@ -387,6 +387,7 @@ canvas.addEventListener('click', e => {
     if(d < bestDist){ bestDist=d; best=r; }
   });
   if(best){
+    activeBloom = best;
     pinnedTip = true;
     showTooltip(best, e.clientX, e.clientY, true);
   } else {
@@ -419,7 +420,7 @@ function showTooltip(r, cx, cy, pinned){
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&margin=2&data=${encodeURIComponent(qrUrl)}" width="64" height="64" alt="QR code" style="border-radius:4px;"/>
       <div class="qr-label"><strong>Scan for current info</strong>Scan to view live HAB alerts<br>for this water body</div>
     </div>
-    <button onclick="printSign(${JSON.stringify(r).replace(/</g,'\\u003c')})" style="pointer-events:auto;margin-top:8px;width:100%;padding:6px;border:1px solid var(--ca-blue);border-radius:var(--radius);background:var(--ca-blue);color:#fff;cursor:pointer;font-size:.75rem;font-weight:700;">🖨️ Print Advisory Sign</button>
+    <button onclick="printSign()" style="pointer-events:auto;margin-top:8px;width:100%;padding:6px;border:1px solid var(--ca-blue);border-radius:var(--radius);background:var(--ca-blue);color:#fff;cursor:pointer;font-size:.75rem;font-weight:700;">🖨️ Print Advisory Sign</button>
   `;
   tip.style.display = 'block';
   tip.style.pointerEvents = pinned ? 'auto' : 'none';
@@ -597,8 +598,11 @@ const SIGN = {
 };
 
 let signOverlay = null;
+let activeBloom = null;
 
 function printSign(r){
+  r = r || activeBloom;
+  if(!r) return;
   const s = SIGN[r._adv] || SIGN.Other;
   const qrUrl = `${location.origin}${location.pathname}?q=${encodeURIComponent(r.name||'')}`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=4&data=${encodeURIComponent(qrUrl)}`;
