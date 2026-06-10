@@ -516,7 +516,7 @@ function setLang(l, btn){
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 buildLegend();
 populateSelects();
-fetch("blooms.json").then(r=>r.json()).then(data=>{ RAW=data; filtered=[...RAW]; applyFilters(); });
+fetch("blooms.json").then(r=>r.json()).then(data=>{ RAW=data; RAW.forEach(r=>r._adv=classifyAdv(r.adv)); filtered=[...RAW]; buildLegend(); populateSelects(); applyFilters(); });
 new ResizeObserver(resize).observe(wrap);
 resize();
 </script>
